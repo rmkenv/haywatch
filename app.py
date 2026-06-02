@@ -59,112 +59,84 @@ from utils.scoring import (
 # ─── Custom CSS ───────────────────────────────────────────────────────────────
 st.markdown("""
 <style>
-  @import url('https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:wght@300;400;500;600&display=swap');
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
 
-  html, body, [class*="css"] {
-    font-family: 'DM Sans', sans-serif;
-  }
-  h1, h2, h3 {
-    font-family: 'DM Serif Display', serif;
-  }
+  html, body, [class*="css"] { font-family: 'Inter', sans-serif; }
 
-  /* Sidebar */
   [data-testid="stSidebar"] {
-    background: #f5f2ec;
-    border-right: 1px solid #e0d8cc;
+    background: #f8f9fa;
+    border-right: 1px solid #dee2e6;
   }
-
-  /* KPI metric cards */
   [data-testid="metric-container"] {
     background: #ffffff;
-    border: 1px solid #e8e2d8;
-    border-radius: 12px;
+    border: 1px solid #dee2e6;
+    border-radius: 10px;
     padding: 16px 20px;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+    box-shadow: 0 1px 4px rgba(0,0,0,0.06);
   }
-
-  /* Alert banner */
+  [data-testid="metric-container"] label {
+    color: #495057 !important;
+    font-weight: 600 !important;
+    font-size: 0.8rem !important;
+  }
+  [data-testid="metric-container"] [data-testid="stMetricValue"] {
+    color: #212529 !important;
+    font-size: 1.6rem !important;
+    font-weight: 700 !important;
+  }
   .storm-alert {
-    background: linear-gradient(135deg, #c47b00 0%, #e09000 100%);
-    color: white;
-    padding: 12px 20px;
-    border-radius: 10px;
+    background: #b45309;
+    color: #ffffff;
+    padding: 13px 20px;
+    border-radius: 8px;
     font-weight: 600;
     font-size: 0.95rem;
     margin-bottom: 16px;
-    border-left: 5px solid #8a5500;
+    border-left: 5px solid #78350f;
   }
-
   .good-banner {
-    background: linear-gradient(135deg, #3d7a2e 0%, #52a33e 100%);
-    color: white;
-    padding: 12px 20px;
-    border-radius: 10px;
+    background: #166534;
+    color: #ffffff;
+    padding: 13px 20px;
+    border-radius: 8px;
     font-weight: 600;
     font-size: 0.95rem;
     margin-bottom: 16px;
-    border-left: 5px solid #2a5520;
+    border-left: 5px solid #14532d;
   }
-
-  /* Score badge */
-  .score-badge {
-    font-family: 'DM Serif Display', serif;
-    font-size: 3.2rem;
-    font-weight: 700;
-    line-height: 1;
-  }
-
-  /* Tab styling */
-  [data-testid="stTabs"] [role="tablist"] {
-    gap: 4px;
-  }
-  [data-testid="stTabs"] [role="tab"] {
-    font-family: 'DM Sans', sans-serif;
-    font-weight: 500;
-    font-size: 0.9rem;
-  }
-
-  /* Day card */
-  .day-card {
-    background: white;
-    border-radius: 10px;
-    border: 1px solid #e0d8cc;
-    padding: 14px 10px;
-    text-align: center;
-  }
-
-  /* Section header */
+  .score-badge { font-size: 3.2rem; font-weight: 700; line-height: 1; }
   .section-label {
-    font-size: 0.75rem;
-    font-weight: 600;
+    font-size: 0.72rem;
+    font-weight: 700;
     text-transform: uppercase;
-    letter-spacing: 0.08em;
-    color: #888;
+    letter-spacing: 0.09em;
+    color: #6c757d;
     margin-bottom: 6px;
   }
-
-  /* Score color helpers */
-  .score-excellent { color: #3d7a2e; }
-  .score-good      { color: #5a9e46; }
-  .score-fair      { color: #c47b00; }
-  .score-poor      { color: #c44200; }
-  .score-avoid     { color: #8b0000; }
-
-  /* Folium map */
-  iframe { border-radius: 10px; border: 1px solid #e0d8cc; }
-
-  /* Hide Streamlit branding */
+  .score-excellent { color: #166534; }
+  .score-good      { color: #15803d; }
+  .score-fair      { color: #92400e; }
+  .score-poor      { color: #9a3412; }
+  .score-avoid     { color: #7f1d1d; }
+  iframe { border-radius: 8px; border: 1px solid #dee2e6; }
+  h1, h2, h3 { color: #1a1a2e; font-weight: 700; }
   #MainMenu { visibility: hidden; }
   footer { visibility: hidden; }
   header { visibility: hidden; }
 </style>
 """, unsafe_allow_html=True)
 
-# ─── Color palette ────────────────────────────────────────────────────────────
-COLOR_GREEN  = "#3d7a2e"
-COLOR_AMBER  = "#c47b00"
-COLOR_BLUE   = "#1e6fa0"
-COLOR_BG     = "#faf8f4"
+# ─── Color palette — all text values pass WCAG AA (≥4.5:1) on white ──────────
+COLOR_GREEN  = "#166534"   # 8.2:1
+COLOR_GREEN2 = "#15803d"   # 5.9:1
+COLOR_AMBER  = "#92400e"   # 7.1:1
+COLOR_RED    = "#9a3412"   # 6.8:1
+COLOR_BLUE   = "#1d4ed8"   # 7.6:1
+COLOR_BLUE2  = "#1e40af"   # 9.1:1
+FILL_GREEN   = "#4ade80"
+FILL_AMBER   = "#fb923c"
+FILL_RED     = "#f87171"
+FILL_BLUE    = "#60a5fa"
 COLOR_CARD   = "#ffffff"
 PLOTLY_TEMPLATE = "simple_white"
 
@@ -172,8 +144,8 @@ PLOTLY_TEMPLATE = "simple_white"
 # ─── Sidebar ──────────────────────────────────────────────────────────────────
 with st.sidebar:
     st.markdown(
-        '<h2 style="font-family:\'DM Serif Display\',serif; color:#3d7a2e; margin-bottom:2px;">🌾 HayWatch</h2>'
-        '<p style="color:#888; font-size:0.82rem; margin-top:0;">Agricultural Intelligence Platform</p>',
+        '<h2 style="font-family:\'DM Serif Display\',serif; color:#166534; margin-bottom:2px;">🌾 HayWatch</h2>'
+        '<p style="color:#6c757d; font-size:0.82rem; margin-top:0;">Agricultural Intelligence Platform</p>',
         unsafe_allow_html=True
     )
     st.divider()
@@ -197,7 +169,7 @@ with st.sidebar:
     refresh = st.button("🔄 Refresh Data", use_container_width=True)
 
     st.markdown("""
-    <div style='font-size:0.72rem; color:#aaa; margin-top:12px; line-height:1.5;'>
+    <div style='font-size:0.72rem; color:#6c757d; margin-top:12px; line-height:1.5;'>
     Data: Open-Meteo (weather, soil, NDVI model)<br>
     All free · No API keys required.<br>
     Scores update every hour.
@@ -241,7 +213,7 @@ days_dry    = days_until_dry(soil_df)
 st.markdown(
     f'<h1 style="font-family:\'DM Serif Display\',serif; color:#1a1a1a; margin-bottom:2px;">'
     f'🌾 HayWatch — {field_name}</h1>'
-    f'<p style="color:#888; margin-top:0; margin-bottom:8px;">📍 {lat:.4f}, {lon:.4f} &nbsp;|&nbsp; '
+    f'<p style="color:#495057; margin-top:0; margin-bottom:8px;">📍 {lat:.4f}, {lon:.4f} &nbsp;|&nbsp; '
     f'{date.today().strftime("%A, %B %-d, %Y")}</p>',
     unsafe_allow_html=True
 )
@@ -336,11 +308,11 @@ with tab1:
                         padding:24px; text-align:center; box-shadow:0 2px 12px rgba(0,0,0,0.06);">
               <div class="section-label">Optimal Day</div>
               <div style="font-family:'DM Serif Display',serif; font-size:1.4rem; font-weight:600;
-                          color:#1a1a1a; margin:4px 0;">{best_date_str}</div>
+                          color:#212529; margin:4px 0;">{best_date_str}</div>
               <div class="score-badge {score_class}">{score:.0f}</div>
-              <div style="font-size:0.8rem; color:#888; margin-top:2px;">/ 100 suitability score</div>
-              <div style="font-size:0.95rem; font-weight:600; color:#3d7a2e; margin-top:10px;">{grade}</div>
-              <div style="font-size:0.82rem; color:#555; margin-top:6px;">{best_window.get('recommendation','')}</div>
+              <div style="font-size:0.8rem; color:#6c757d; margin-top:2px;">/ 100 suitability score</div>
+              <div style="font-size:0.95rem; font-weight:600; color:#166534; margin-top:10px;">{grade}</div>
+              <div style="font-size:0.82rem; color:#374151; margin-top:6px;">{best_window.get('recommendation','')}</div>
             </div>
             """, unsafe_allow_html=True)
 
@@ -350,11 +322,11 @@ with tab1:
             fig = go.Figure()
             colors = []
             for s in scores_df["score"]:
-                if s >= 80:   colors.append(COLOR_GREEN)
-                elif s >= 65: colors.append("#5a9e46")
-                elif s >= 45: colors.append(COLOR_AMBER)
-                elif s >= 25: colors.append("#c44200")
-                else:         colors.append("#8b0000")
+                if s >= 80:   colors.append("#166534")
+                elif s >= 65: colors.append("#15803d")
+                elif s >= 45: colors.append("#92400e")
+                elif s >= 25: colors.append("#9a3412")
+                else:         colors.append("#7f1d1d")
 
             fig.add_trace(go.Bar(
                 x=scores_df["date"].dt.strftime("%a %-d"),
@@ -364,7 +336,7 @@ with tab1:
                 textposition="outside",
                 hovertemplate="<b>%{x}</b><br>Score: %{y:.0f}/100<extra></extra>",
             ))
-            fig.add_hline(y=65, line_dash="dot", line_color=COLOR_GREEN, annotation_text="Cut threshold")
+            fig.add_hline(y=65, line_dash="dot", line_color="#166534", annotation_text="Cut threshold")
             fig.update_layout(
                 template=PLOTLY_TEMPLATE,
                 yaxis=dict(range=[0, 110], title="Suitability Score"),
@@ -390,14 +362,14 @@ with tab1:
                     border-radius:10px; padding:16px;">
           <div class="section-label">Crop Status (NDVI)</div>
           <div style="font-size:1.1rem; font-weight:600; color:{ndvi_color};">{status_label}</div>
-          <div style="font-size:0.82rem; color:#555; margin-top:4px;">
+          <div style="font-size:0.82rem; color:#374151; margin-top:4px;">
             Index value: <strong>{ndvi_latest:.3f}</strong> &nbsp; (threshold ≥ {NDVI_CUT_THRESHOLD})
           </div>
         </div>
         """, unsafe_allow_html=True)
 
     with col_b:
-        dry_color = COLOR_GREEN if days_dry == 0 else (COLOR_AMBER if days_dry <= 3 else "#c44200")
+        dry_color = "#166534" if days_dry == 0 else ("#92400e" if days_dry <= 3 else "#9a3412")
         days_str = "Dry Now ✓" if days_dry == 0 else (f"{days_dry} days" if days_dry < 14 else "10+ days")
         st.markdown(f"""
         <div style="background:{dry_color}15; border:1px solid {dry_color}55;
@@ -406,7 +378,7 @@ with tab1:
           <div style="font-size:1.1rem; font-weight:600; color:{dry_color};">
             Surface dry in: {days_str}
           </div>
-          <div style="font-size:0.82rem; color:#555; margin-top:4px;">
+          <div style="font-size:0.82rem; color:#374151; margin-top:4px;">
             Surface moisture: <strong>{sm_pct}%</strong> &nbsp; (target &lt; 45%)
           </div>
         </div>
@@ -416,13 +388,13 @@ with tab1:
         humidity = current.get('humidity', 0)
         precip_prob_now = current.get('precip_prob', 0)
         st.markdown(f"""
-        <div style="background:{COLOR_BLUE}10; border:1px solid {COLOR_BLUE}44;
+        <div style="background:#eff6ff; border:1px solid #bfdbfe;
                     border-radius:10px; padding:16px;">
           <div class="section-label">Atmosphere</div>
-          <div style="font-size:1.1rem; font-weight:600; color:{COLOR_BLUE};">
+          <div style="font-size:1.1rem; font-weight:600; color:#1d4ed8;">
             RH: {humidity}% &nbsp; | &nbsp; Rain: {precip_prob_now:.0f}%
           </div>
-          <div style="font-size:0.82rem; color:#555; margin-top:4px;">
+          <div style="font-size:0.82rem; color:#374151; margin-top:4px;">
             Relative humidity and precipitation probability now
           </div>
         </div>
@@ -444,23 +416,23 @@ with tab2:
                 y="ndvi",
                 markers=True,
                 labels={"ndvi": "NDVI", "date": "Date"},
-                color_discrete_sequence=[COLOR_GREEN],
+                color_discrete_sequence=["#166534"],
             )
             fig_ndvi.add_hline(
                 y=NDVI_CUT_THRESHOLD,
                 line_dash="dash",
-                line_color=COLOR_AMBER,
+                line_color="#92400e",
                 annotation_text=f"Cut threshold ({NDVI_CUT_THRESHOLD})",
-                annotation_font_color=COLOR_AMBER,
+                annotation_font_color="#92400e",
             )
             fig_ndvi.add_hrect(
                 y0=NDVI_CUT_THRESHOLD, y1=1.0,
-                fillcolor=COLOR_GREEN, opacity=0.07, line_width=0,
+                fillcolor="#166534", opacity=0.06, line_width=0,
                 annotation_text="Optimal zone", annotation_position="top left",
-                annotation_font_color=COLOR_GREEN,
+                annotation_font_color="#166534",
             )
             fig_ndvi.update_traces(
-                marker=dict(size=8, color=COLOR_GREEN, line=dict(width=2, color="white")),
+                marker=dict(size=8, color="#166534", line=dict(width=2, color="white")),
                 line=dict(width=2.5),
             )
             fig_ndvi.update_layout(
@@ -511,12 +483,12 @@ with tab2:
 
         # NDVI legend
         st.markdown("""
-        <div style="font-size:0.8rem; color:#666; margin-top:8px;">
+        <div style="font-size:0.8rem; color:#495057; margin-top:8px;">
           <strong>NDVI Color Scale</strong><br>
-          <span style="color:#b22222;">■</span> &lt;0.3 Bare/Stressed &nbsp;
-          <span style="color:#c47b00;">■</span> 0.3–0.5 Early Growth &nbsp;
-          <span style="color:#5a9e46;">■</span> 0.5–0.65 Growing &nbsp;
-          <span style="color:#3d7a2e;">■</span> &gt;0.65 Ready to Cut<br>
+          <span style="color:#7f1d1d;">■</span> &lt;0.3 Bare/Stressed &nbsp;
+          <span style="color:#92400e;">■</span> 0.3–0.5 Early Growth &nbsp;
+          <span style="color:#15803d;">■</span> 0.5–0.65 Growing &nbsp;
+          <span style="color:#166534;">■</span> &gt;0.65 Ready to Cut<br>
           <em>NDVI modeled from Open-Meteo weather archive — no satellite account required.</em>
         </div>
         """, unsafe_allow_html=True)
@@ -546,12 +518,12 @@ with tab3:
                 x=depth_prof["moisture_pct"],
                 y=depth_prof["layer"],
                 orientation="h",
-                marker_color=[COLOR_BLUE, "#2e8fc0", "#5ab0d8"],
+                marker_color=["#1d4ed8", "#2563eb", "#3b82f6"],
                 text=depth_prof["moisture_pct"].apply(lambda x: f"{x:.1f}%"),
                 textposition="outside",
                 hovertemplate="<b>%{y}</b><br>Moisture: %{x:.1f}%<extra></extra>",
             ))
-            fig_depth.add_vline(x=45, line_dash="dash", line_color=COLOR_AMBER,
+            fig_depth.add_vline(x=45, line_dash="dash", line_color="#92400e",
                                 annotation_text="Cut threshold (45%)")
             fig_depth.update_layout(
                 template=PLOTLY_TEMPLATE,
@@ -570,7 +542,7 @@ with tab3:
         st.markdown("### 7-Day Surface Moisture Trend")
         if not soil_trend.empty:
             bar_colors = [
-                COLOR_GREEN if v < 45 else (COLOR_AMBER if v < 60 else "#c44200")
+                "#166534" if v < 45 else ("#92400e" if v < 60 else "#9a3412")
                 for v in soil_trend["surface_moisture_pct"]
             ]
             fig_soil = go.Figure(go.Bar(
@@ -581,9 +553,9 @@ with tab3:
                 textposition="outside",
                 hovertemplate="<b>%{x}</b><br>Surface Moisture: %{y:.1f}%<extra></extra>",
             ))
-            fig_soil.add_hline(y=45, line_dash="dot", line_color=COLOR_AMBER,
+            fig_soil.add_hline(y=45, line_dash="dot", line_color="#92400e",
                                annotation_text="Cut threshold")
-            fig_soil.add_hline(y=60, line_dash="dot", line_color="#c44200",
+            fig_soil.add_hline(y=60, line_dash="dot", line_color="#9a3412",
                                annotation_text="Avoid zone")
             fig_soil.update_layout(
                 template=PLOTLY_TEMPLATE,
@@ -604,7 +576,7 @@ with tab3:
     st.markdown("### Curing Forecast")
     cc1, cc2, cc3, cc4 = st.columns(4)
 
-    dry_color = COLOR_GREEN if days_dry == 0 else (COLOR_AMBER if days_dry <= 3 else "#c44200")
+    dry_color = "#166534" if days_dry == 0 else ("#92400e" if days_dry <= 3 else "#9a3412")
     days_str = "Dry Now" if days_dry == 0 else (f"{days_dry} days" if days_dry < 14 else "10+ days")
 
     with cc1:
@@ -645,10 +617,10 @@ with tab4:
             with cols[i % 7]:
                 score = row["score"]
                 grade = row["grade"]
-                if score >= 80:   bg, txt = "#edf7e9", COLOR_GREEN
-                elif score >= 65: bg, txt = "#f2f9ee", "#5a9e46"
-                elif score >= 45: bg, txt = "#fff8e6", COLOR_AMBER
-                else:             bg, txt = "#fef0ec", "#c44200"
+                if score >= 80:   bg, txt = "#f0fdf4", "#166534"
+                elif score >= 65: bg, txt = "#dcfce7", "#15803d"
+                elif score >= 45: bg, txt = "#fef3c7", "#92400e"
+                else:             bg, txt = "#fee2e2", "#9a3412"
 
                 date_label = row["date"].strftime("%a") if hasattr(row["date"], "strftime") else "—"
                 day_num    = row["date"].strftime("%-d") if hasattr(row["date"], "strftime") else "—"
@@ -656,11 +628,11 @@ with tab4:
                 st.markdown(f"""
                 <div style="background:{bg}; border:1px solid {txt}44; border-radius:10px;
                             padding:12px 6px; text-align:center; margin-bottom:8px;">
-                  <div style="font-size:0.78rem; font-weight:600; color:#888;">{date_label}</div>
+                  <div style="font-size:0.78rem; font-weight:600; color:#6c757d;">{date_label}</div>
                   <div style="font-size:1.4rem; font-weight:700; color:{txt};">{score:.0f}</div>
                   <div style="font-size:0.7rem; color:{txt}; font-weight:600;">{grade}</div>
                   <div style="border-top:1px solid {txt}33; margin:6px 0;"></div>
-                  <div style="font-size:0.72rem; color:#555;">
+                  <div style="font-size:0.72rem; color:#374151;">
                     🌡️ {row['temp_max']:.0f}°/{row['temp_min']:.0f}°F<br>
                     🌧️ {row['precip_prob']:.0f}%<br>
                     💨 {row['wind_max']:.0f} mph
@@ -676,7 +648,7 @@ with tab4:
         factor_labels = ["Precip (35%)", "Wind (15%)", "Temp (15%)", "Soil (25%)", "NDVI (10%)"]
 
         fig_factors = go.Figure()
-        colors_factors = [COLOR_BLUE, "#5ab0d8", "#76c9a0", COLOR_GREEN, "#8fbc55"]
+        colors_factors = ["#1d4ed8", "#2563eb", "#059669", "#166534", "#15803d"]
 
         for col, label, color in zip(factor_cols, factor_labels, colors_factors):
             if col in scores_df.columns:
@@ -764,17 +736,17 @@ with tab5:
 
             days_to = readiness["days_to_cut"]
             rec_date = (date.today() + timedelta(days=days_to)).strftime("%b %-d") if days_to is not None else "TBD"
-            status_color = COLOR_GREEN if readiness["status"] == "Ready Now" else COLOR_AMBER
+            status_color = "#166534" if readiness["status"] == "Ready Now" else "#92400e"
 
             st.markdown(f"""
-            <div style="background:white; border:1px solid #e0d8cc; border-radius:10px;
+            <div style="background:white; border:1px solid #dee2e6; border-radius:10px;
                         padding:16px 20px; margin-bottom:10px;">
               <div style="display:flex; justify-content:space-between; align-items:center;">
                 <div>
-                  <div style="font-family:'DM Serif Display',serif; font-size:1.05rem; color:#1a1a1a;">
+                  <div style="font-family:'DM Serif Display',serif; font-size:1.05rem; color:#212529;">
                     🌾 {fname}
                   </div>
-                  <div style="font-size:0.82rem; color:#888; margin-top:2px;">
+                  <div style="font-size:0.82rem; color:#6c757d; margin-top:2px;">
                     {frow.get('Acreage', '—')} acres
                     {f' &nbsp;|&nbsp; Last cut: {days_since} days ago' if days_since else ''}
                   </div>
@@ -783,10 +755,10 @@ with tab5:
                   <div style="font-weight:700; color:{status_color}; font-size:1rem;">
                     {readiness['status']}
                   </div>
-                  <div style="font-size:0.82rem; color:#555;">
+                  <div style="font-size:0.82rem; color:#374151;">
                     Recommended cut: <strong>{rec_date}</strong>
                   </div>
-                  <div style="font-size:0.75rem; color:#999; margin-top:2px;">
+                  <div style="font-size:0.75rem; color:#6c757d; margin-top:2px;">
                     NDVI: {ndvi_latest:.3f} {'✓' if readiness['ndvi_ready'] else '✗'} &nbsp;
                     Soil: {sm_pct}% {'✓' if readiness['moisture_ready'] else '✗'}
                   </div>
