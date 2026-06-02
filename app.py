@@ -3,6 +3,13 @@ app.py — HayWatch Agricultural Intelligence Dashboard
 Streamlit app for hay farmer decision support.
 Combines NDVI, soil moisture, and weather forecasts into a daily cut-suitability score.
 """
+import sys
+import os
+
+# Ensure the repo root is on sys.path so `utils/` is importable
+# regardless of the working directory Streamlit Cloud uses.
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+
 import streamlit as st
 import pandas as pd
 import numpy as np
