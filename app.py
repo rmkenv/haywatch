@@ -56,75 +56,213 @@ from utils.scoring import (
     NDVI_CUT_THRESHOLD,
 )
 
-# ─── Custom CSS ───────────────────────────────────────────────────────────────
+# ─── Custom CSS — aggressively override dark mode ────────────────────────────
 st.markdown("""
 <style>
-  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
 
-  html, body, [class*="css"] { font-family: 'Inter', sans-serif; }
-
-  [data-testid="stSidebar"] {
-    background: #f8f9fa;
-    border-right: 1px solid #dee2e6;
+  /* ── Force light mode on every Streamlit surface ── */
+  .stApp,
+  .stApp > div,
+  [data-testid="stAppViewContainer"],
+  [data-testid="stAppViewBlockContainer"],
+  [data-testid="block-container"],
+  .main,
+  .main > div,
+  section.main > div {
+    background-color: #f8fafc !important;
+    color: #1e293b !important;
   }
+
+  /* Sidebar */
+  [data-testid="stSidebar"],
+  [data-testid="stSidebar"] > div {
+    background-color: #ffffff !important;
+    border-right: 1px solid #e2e8f0 !important;
+  }
+  [data-testid="stSidebar"] * {
+    color: #1e293b !important;
+  }
+  [data-testid="stSidebar"] .stSlider > div > div {
+    background: #e2e8f0 !important;
+  }
+
+  /* All text */
+  p, span, div, label, li, td, th, h1, h2, h3, h4 {
+    color: #1e293b !important;
+  }
+
+  /* Override Streamlit's default dark text colors */
+  .stMarkdown, .stText, .stWrite {
+    color: #1e293b !important;
+  }
+
+  /* Metric cards */
   [data-testid="metric-container"] {
-    background: #ffffff;
-    border: 1px solid #dee2e6;
-    border-radius: 10px;
-    padding: 16px 20px;
-    box-shadow: 0 1px 4px rgba(0,0,0,0.06);
+    background: #ffffff !important;
+    border: 1px solid #e2e8f0 !important;
+    border-radius: 10px !important;
+    padding: 16px 20px !important;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.08) !important;
   }
-  [data-testid="metric-container"] label {
-    color: #495057 !important;
-    font-weight: 600 !important;
-    font-size: 0.8rem !important;
+  [data-testid="metric-container"] label,
+  [data-testid="metric-container"] [data-testid="stMetricLabel"] div {
+    color: #64748b !important;
+    font-size: 0.78rem !important;
+    font-weight: 700 !important;
+    text-transform: uppercase !important;
+    letter-spacing: 0.05em !important;
   }
+  [data-testid="metric-container"] [data-testid="stMetricValue"] div,
   [data-testid="metric-container"] [data-testid="stMetricValue"] {
-    color: #212529 !important;
+    color: #0f172a !important;
     font-size: 1.6rem !important;
+    font-weight: 800 !important;
+  }
+  [data-testid="metric-container"] [data-testid="stMetricDelta"] div {
+    font-size: 0.78rem !important;
+    font-weight: 600 !important;
+  }
+
+  /* Input widgets — force light */
+  [data-testid="stNumberInput"] input,
+  [data-testid="stTextInput"] input,
+  .stSelectbox select {
+    background: #ffffff !important;
+    color: #1e293b !important;
+    border: 1px solid #cbd5e1 !important;
+    border-radius: 6px !important;
+  }
+
+  /* Date inputs */
+  [data-testid="stDateInput"] input {
+    background: #ffffff !important;
+    color: #1e293b !important;
+  }
+
+  /* Buttons */
+  [data-testid="stButton"] button {
+    background: #166534 !important;
+    color: #ffffff !important;
+    border: none !important;
+    font-weight: 600 !important;
+    border-radius: 6px !important;
+  }
+  [data-testid="stButton"] button:hover {
+    background: #14532d !important;
+  }
+
+  /* Tabs */
+  [data-testid="stTabs"] [role="tablist"] {
+    background: transparent !important;
+    border-bottom: 2px solid #e2e8f0 !important;
+  }
+  [data-testid="stTabs"] [role="tab"] {
+    color: #64748b !important;
+    font-weight: 600 !important;
+    font-size: 0.88rem !important;
+    background: transparent !important;
+  }
+  [data-testid="stTabs"] [role="tab"][aria-selected="true"] {
+    color: #166534 !important;
+    border-bottom: 2px solid #166534 !important;
+  }
+
+  /* Data tables */
+  [data-testid="stDataFrame"],
+  .stDataFrame {
+    background: #ffffff !important;
+  }
+  [data-testid="stDataFrame"] th {
+    background: #f1f5f9 !important;
+    color: #374151 !important;
     font-weight: 700 !important;
   }
+  [data-testid="stDataFrame"] td {
+    color: #1e293b !important;
+    background: #ffffff !important;
+  }
+
+  /* Expander */
+  [data-testid="stExpander"] {
+    background: #ffffff !important;
+    border: 1px solid #e2e8f0 !important;
+    border-radius: 8px !important;
+  }
+  [data-testid="stExpander"] summary {
+    color: #1e293b !important;
+    font-weight: 600 !important;
+  }
+
+  /* Info / warning boxes */
+  [data-testid="stAlert"] {
+    background: #f0f9ff !important;
+    border: 1px solid #bae6fd !important;
+    color: #0c4a6e !important;
+    border-radius: 8px !important;
+  }
+
+  /* Plotly charts — force white canvas */
+  .js-plotly-plot .plotly,
+  .js-plotly-plot .plotly .bg {
+    fill: #ffffff !important;
+  }
+
+  /* Folium iframe */
+  iframe {
+    border-radius: 8px !important;
+    border: 1px solid #e2e8f0 !important;
+  }
+
+  /* Dividers */
+  hr {
+    border-color: #e2e8f0 !important;
+  }
+
+  /* Custom component classes */
   .storm-alert {
-    background: #b45309;
-    color: #ffffff;
+    background: #b45309 !important;
+    color: #ffffff !important;
     padding: 13px 20px;
     border-radius: 8px;
-    font-weight: 600;
+    font-weight: 700;
     font-size: 0.95rem;
     margin-bottom: 16px;
     border-left: 5px solid #78350f;
   }
   .good-banner {
-    background: #166534;
-    color: #ffffff;
+    background: #166534 !important;
+    color: #ffffff !important;
     padding: 13px 20px;
     border-radius: 8px;
-    font-weight: 600;
+    font-weight: 700;
     font-size: 0.95rem;
     margin-bottom: 16px;
     border-left: 5px solid #14532d;
   }
-  .score-badge { font-size: 3.2rem; font-weight: 700; line-height: 1; }
   .section-label {
-    font-size: 0.72rem;
-    font-weight: 700;
+    font-size: 0.7rem;
+    font-weight: 800;
     text-transform: uppercase;
-    letter-spacing: 0.09em;
-    color: #6c757d;
+    letter-spacing: 0.1em;
+    color: #64748b !important;
     margin-bottom: 6px;
   }
-  .score-excellent { color: #166534; }
-  .score-good      { color: #15803d; }
-  .score-fair      { color: #92400e; }
-  .score-poor      { color: #9a3412; }
-  .score-avoid     { color: #7f1d1d; }
-  iframe { border-radius: 8px; border: 1px solid #dee2e6; }
-  h1, h2, h3 { color: #1a1a2e; font-weight: 700; }
-  #MainMenu { visibility: hidden; }
-  footer { visibility: hidden; }
-  header { visibility: hidden; }
+  .score-badge { font-size: 3rem; font-weight: 800; line-height: 1; }
+  .score-excellent { color: #166534 !important; }
+  .score-good      { color: #15803d !important; }
+  .score-fair      { color: #92400e !important; }
+  .score-poor      { color: #9a3412 !important; }
+  .score-avoid     { color: #7f1d1d !important; }
+
+  /* Hide Streamlit chrome */
+  #MainMenu, footer, header { visibility: hidden; }
+
+  /* Global font */
+  html, body, * { font-family: 'Inter', -apple-system, sans-serif !important; }
 </style>
 """, unsafe_allow_html=True)
+
 
 # ─── Color palette — all text values pass WCAG AA (≥4.5:1) on white ──────────
 COLOR_GREEN  = "#166534"   # 8.2:1
@@ -139,6 +277,19 @@ FILL_RED     = "#f87171"
 FILL_BLUE    = "#60a5fa"
 COLOR_CARD   = "#ffffff"
 PLOTLY_TEMPLATE = "simple_white"
+
+# ─── Plotly layout defaults (explicit light theme) ───────────────────────────
+def chart_layout(**kwargs):
+    defaults = dict(
+        template="simple_white",
+        plot_bgcolor="#ffffff",
+        paper_bgcolor="#ffffff",
+        font=dict(color="#212529", family="Inter, sans-serif"),
+        margin=dict(t=30, b=20, l=50, r=20),
+    )
+    defaults.update(kwargs)
+    return defaults
+
 
 
 # ─── Sidebar ──────────────────────────────────────────────────────────────────
@@ -304,15 +455,14 @@ with tab1:
             score_class = f"score-{grade.lower()}"
             best_date_str = best_window["date"].strftime("%A, %b %-d") if hasattr(best_window["date"], "strftime") else str(best_window["date"])
             st.markdown(f"""
-            <div style="background:white; border:1px solid #e0d8cc; border-radius:14px;
-                        padding:24px; text-align:center; box-shadow:0 2px 12px rgba(0,0,0,0.06);">
-              <div class="section-label">Optimal Day</div>
-              <div style="font-family:'DM Serif Display',serif; font-size:1.4rem; font-weight:600;
-                          color:#212529; margin:4px 0;">{best_date_str}</div>
+            <div style="background:#ffffff; border:2px solid #dee2e6; border-radius:12px;
+                        padding:24px; text-align:center; box-shadow:0 2px 8px rgba(0,0,0,0.08);">
+              <div class="section-label">Optimal Cut Window</div>
+              <div style="font-size:1.3rem; font-weight:700; color:#212529; margin:6px 0;">{best_date_str}</div>
               <div class="score-badge {score_class}">{score:.0f}</div>
-              <div style="font-size:0.8rem; color:#6c757d; margin-top:2px;">/ 100 suitability score</div>
-              <div style="font-size:0.95rem; font-weight:600; color:#166534; margin-top:10px;">{grade}</div>
-              <div style="font-size:0.82rem; color:#374151; margin-top:6px;">{best_window.get('recommendation','')}</div>
+              <div style="font-size:0.82rem; color:#6c757d; margin-top:4px;">/ 100 suitability score</div>
+              <div style="font-size:1rem; font-weight:700; color:#166534; margin-top:12px;">{grade}</div>
+              <div style="font-size:0.85rem; color:#374151; margin-top:6px; font-weight:500;">{best_window.get('recommendation','')}</div>
             </div>
             """, unsafe_allow_html=True)
 
@@ -337,16 +487,13 @@ with tab1:
                 hovertemplate="<b>%{x}</b><br>Score: %{y:.0f}/100<extra></extra>",
             ))
             fig.add_hline(y=65, line_dash="dot", line_color="#166534", annotation_text="Cut threshold")
-            fig.update_layout(
-                template=PLOTLY_TEMPLATE,
-                yaxis=dict(range=[0, 110], title="Suitability Score"),
-                xaxis_title="",
+            fig.update_layout(**chart_layout(
+                yaxis=dict(range=[0, 110], title="Suitability Score", color="#212529"),
+                xaxis=dict(title="", color="#212529"),
                 showlegend=False,
                 height=280,
                 margin=dict(t=20, b=20, l=40, r=20),
-                plot_bgcolor="white",
-                paper_bgcolor="white",
-            )
+            ))
             st.plotly_chart(fig, use_container_width=True)
 
     st.divider()
@@ -358,12 +505,13 @@ with tab1:
         status_label = ndvi_status_label(ndvi_latest)
         ndvi_color = ndvi_to_color(ndvi_latest)
         st.markdown(f"""
-        <div style="background:{ndvi_color}22; border:1px solid {ndvi_color}66;
-                    border-radius:10px; padding:16px;">
+        <div style="background:#f0fdf4; border-left:4px solid #166534;
+                    border-radius:6px; padding:16px;">
           <div class="section-label">Crop Status (NDVI)</div>
-          <div style="font-size:1.1rem; font-weight:600; color:{ndvi_color};">{status_label}</div>
-          <div style="font-size:0.82rem; color:#374151; margin-top:4px;">
-            Index value: <strong>{ndvi_latest:.3f}</strong> &nbsp; (threshold ≥ {NDVI_CUT_THRESHOLD})
+          <div style="font-size:1.1rem; font-weight:700; color:#166534;">{status_label}</div>
+          <div style="font-size:0.85rem; color:#374151; margin-top:6px;">
+            Index: <strong style="color:#212529;">{ndvi_latest:.3f}</strong>
+            &nbsp;(cut threshold ≥ {NDVI_CUT_THRESHOLD})
           </div>
         </div>
         """, unsafe_allow_html=True)
@@ -372,14 +520,15 @@ with tab1:
         dry_color = "#166534" if days_dry == 0 else ("#92400e" if days_dry <= 3 else "#9a3412")
         days_str = "Dry Now ✓" if days_dry == 0 else (f"{days_dry} days" if days_dry < 14 else "10+ days")
         st.markdown(f"""
-        <div style="background:{dry_color}15; border:1px solid {dry_color}55;
-                    border-radius:10px; padding:16px;">
+        <div style="background:#fffbeb; border-left:4px solid {dry_color};
+                    border-radius:6px; padding:16px;">
           <div class="section-label">Curing Forecast</div>
-          <div style="font-size:1.1rem; font-weight:600; color:{dry_color};">
+          <div style="font-size:1.1rem; font-weight:700; color:{dry_color};">
             Surface dry in: {days_str}
           </div>
-          <div style="font-size:0.82rem; color:#374151; margin-top:4px;">
-            Surface moisture: <strong>{sm_pct}%</strong> &nbsp; (target &lt; 45%)
+          <div style="font-size:0.85rem; color:#374151; margin-top:6px;">
+            Surface moisture: <strong style="color:#212529;">{sm_pct}%</strong>
+            &nbsp;(target &lt; 45%)
           </div>
         </div>
         """, unsafe_allow_html=True)
@@ -388,13 +537,13 @@ with tab1:
         humidity = current.get('humidity', 0)
         precip_prob_now = current.get('precip_prob', 0)
         st.markdown(f"""
-        <div style="background:#eff6ff; border:1px solid #bfdbfe;
-                    border-radius:10px; padding:16px;">
+        <div style="background:#eff6ff; border-left:4px solid #1d4ed8;
+                    border-radius:6px; padding:16px;">
           <div class="section-label">Atmosphere</div>
-          <div style="font-size:1.1rem; font-weight:600; color:#1d4ed8;">
-            RH: {humidity}% &nbsp; | &nbsp; Rain: {precip_prob_now:.0f}%
+          <div style="font-size:1.1rem; font-weight:700; color:#1e40af;">
+            RH: {humidity}% &nbsp;|&nbsp; Rain: {precip_prob_now:.0f}%
           </div>
-          <div style="font-size:0.82rem; color:#374151; margin-top:4px;">
+          <div style="font-size:0.85rem; color:#374151; margin-top:6px;">
             Relative humidity and precipitation probability now
           </div>
         </div>
@@ -435,15 +584,12 @@ with tab2:
                 marker=dict(size=8, color="#166534", line=dict(width=2, color="white")),
                 line=dict(width=2.5),
             )
-            fig_ndvi.update_layout(
-                template=PLOTLY_TEMPLATE,
-                yaxis=dict(range=[0, 1], title="NDVI"),
-                xaxis_title="",
+            fig_ndvi.update_layout(**chart_layout(
+                yaxis=dict(range=[0, 1], title="NDVI", color="#212529"),
+                xaxis=dict(title="", color="#212529"),
                 height=340,
                 margin=dict(t=30, b=20, l=50, r=20),
-                plot_bgcolor="white",
-                paper_bgcolor="white",
-            )
+            ))
             st.plotly_chart(fig_ndvi, use_container_width=True)
         else:
             st.info("No NDVI data available for the selected period.")
@@ -525,15 +671,12 @@ with tab3:
             ))
             fig_depth.add_vline(x=45, line_dash="dash", line_color="#92400e",
                                 annotation_text="Cut threshold (45%)")
-            fig_depth.update_layout(
-                template=PLOTLY_TEMPLATE,
-                xaxis=dict(range=[0, 80], title="Volumetric Water Content (%)"),
-                yaxis_title="",
+            fig_depth.update_layout(**chart_layout(
+                xaxis=dict(range=[0, 80], title="Volumetric Water Content (%)", color="#212529"),
+                yaxis=dict(title="", color="#212529"),
                 height=300,
                 margin=dict(t=20, b=20, l=20, r=60),
-                plot_bgcolor="white",
-                paper_bgcolor="white",
-            )
+            ))
             st.plotly_chart(fig_depth, use_container_width=True)
         else:
             st.info("Soil depth profile unavailable.")
@@ -557,15 +700,12 @@ with tab3:
                                annotation_text="Cut threshold")
             fig_soil.add_hline(y=60, line_dash="dot", line_color="#9a3412",
                                annotation_text="Avoid zone")
-            fig_soil.update_layout(
-                template=PLOTLY_TEMPLATE,
-                yaxis=dict(range=[0, 85], title="Surface Moisture (%)"),
-                xaxis_title="",
+            fig_soil.update_layout(**chart_layout(
+                yaxis=dict(range=[0, 85], title="Surface Moisture (%)", color="#212529"),
+                xaxis=dict(title="", color="#212529"),
                 height=300,
                 margin=dict(t=20, b=20, l=50, r=60),
-                plot_bgcolor="white",
-                paper_bgcolor="white",
-            )
+            ))
             st.plotly_chart(fig_soil, use_container_width=True)
         else:
             st.info("Soil trend data unavailable.")
@@ -626,13 +766,16 @@ with tab4:
                 day_num    = row["date"].strftime("%-d") if hasattr(row["date"], "strftime") else "—"
 
                 st.markdown(f"""
-                <div style="background:{bg}; border:1px solid {txt}44; border-radius:10px;
-                            padding:12px 6px; text-align:center; margin-bottom:8px;">
-                  <div style="font-size:0.78rem; font-weight:600; color:#6c757d;">{date_label}</div>
-                  <div style="font-size:1.4rem; font-weight:700; color:{txt};">{score:.0f}</div>
-                  <div style="font-size:0.7rem; color:{txt}; font-weight:600;">{grade}</div>
-                  <div style="border-top:1px solid {txt}33; margin:6px 0;"></div>
-                  <div style="font-size:0.72rem; color:#374151;">
+                <div style="background:#ffffff; border:1px solid #dee2e6; border-top:4px solid {txt};
+                            border-radius:8px; padding:12px 6px; text-align:center; margin-bottom:8px;
+                            box-shadow:0 1px 3px rgba(0,0,0,0.06);">
+                  <div style="font-size:0.75rem; font-weight:700; color:#6c757d; text-transform:uppercase;
+                              letter-spacing:0.05em;">{date_label}</div>
+                  <div style="font-size:1.6rem; font-weight:800; color:{txt}; line-height:1.1;
+                              margin:4px 0;">{score:.0f}</div>
+                  <div style="font-size:0.7rem; font-weight:700; color:{txt}; margin-bottom:6px;">{grade}</div>
+                  <div style="border-top:1px solid #e9ecef; padding-top:6px;
+                              font-size:0.75rem; color:#495057; line-height:1.6;">
                     🌡️ {row['temp_max']:.0f}°/{row['temp_min']:.0f}°F<br>
                     🌧️ {row['precip_prob']:.0f}%<br>
                     💨 {row['wind_max']:.0f} mph
@@ -663,16 +806,14 @@ with tab4:
                 ))
 
         fig_factors.add_hline(y=65, line_dash="dot", line_color="#ccc")
-        fig_factors.update_layout(
-            template=PLOTLY_TEMPLATE,
-            yaxis=dict(range=[0, 110], title="Factor Score (0–100)"),
-            xaxis_title="",
+        fig_factors.update_layout(**chart_layout(
+            yaxis=dict(range=[0, 110], title="Factor Score (0–100)", color="#212529"),
+            xaxis=dict(title="", color="#212529"),
             height=320,
-            legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1),
+            legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1,
+                        font=dict(color="#212529")),
             margin=dict(t=40, b=20, l=50, r=20),
-            plot_bgcolor="white",
-            paper_bgcolor="white",
-        )
+        ))
         st.plotly_chart(fig_factors, use_container_width=True)
 
         # Recommendations table
@@ -739,28 +880,30 @@ with tab5:
             status_color = "#166534" if readiness["status"] == "Ready Now" else "#92400e"
 
             st.markdown(f"""
-            <div style="background:white; border:1px solid #dee2e6; border-radius:10px;
-                        padding:16px 20px; margin-bottom:10px;">
+            <div style="background:#ffffff; border:1px solid #dee2e6;
+                        border-left:4px solid {status_color};
+                        border-radius:6px; padding:16px 20px; margin-bottom:10px;
+                        box-shadow:0 1px 3px rgba(0,0,0,0.05);">
               <div style="display:flex; justify-content:space-between; align-items:center;">
                 <div>
-                  <div style="font-family:'DM Serif Display',serif; font-size:1.05rem; color:#212529;">
+                  <div style="font-size:1.05rem; font-weight:700; color:#212529;">
                     🌾 {fname}
                   </div>
-                  <div style="font-size:0.82rem; color:#6c757d; margin-top:2px;">
+                  <div style="font-size:0.83rem; color:#6c757d; margin-top:3px;">
                     {frow.get('Acreage', '—')} acres
-                    {f' &nbsp;|&nbsp; Last cut: {days_since} days ago' if days_since else ''}
+                    {f' &nbsp;·&nbsp; Last cut: {days_since} days ago' if days_since else ''}
                   </div>
                 </div>
                 <div style="text-align:right;">
-                  <div style="font-weight:700; color:{status_color}; font-size:1rem;">
+                  <div style="font-weight:800; color:{status_color}; font-size:1rem;">
                     {readiness['status']}
                   </div>
-                  <div style="font-size:0.82rem; color:#374151;">
-                    Recommended cut: <strong>{rec_date}</strong>
+                  <div style="font-size:0.85rem; color:#374151; margin-top:2px;">
+                    Cut by: <strong style="color:#212529;">{rec_date}</strong>
                   </div>
-                  <div style="font-size:0.75rem; color:#6c757d; margin-top:2px;">
-                    NDVI: {ndvi_latest:.3f} {'✓' if readiness['ndvi_ready'] else '✗'} &nbsp;
-                    Soil: {sm_pct}% {'✓' if readiness['moisture_ready'] else '✗'}
+                  <div style="font-size:0.78rem; color:#6c757d; margin-top:4px;">
+                    NDVI {ndvi_latest:.3f} {'✅' if readiness['ndvi_ready'] else '⚠️'} &nbsp;
+                    Soil {sm_pct}% {'✅' if readiness['moisture_ready'] else '⚠️'}
                   </div>
                 </div>
               </div>
