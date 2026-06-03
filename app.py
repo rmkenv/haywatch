@@ -293,42 +293,84 @@ def chart_layout(**kwargs):
 
 
 # ─── Sidebar ──────────────────────────────────────────────────────────────────
+# ─── Session state defaults ──────────────────────────────────────────────────
+if "lat" not in st.session_state:
+    st.session_state["lat"] = 38.72
+if "lon" not in st.session_state:
+    st.session_state["lon"] = -77.80
+if "field_name" not in st.session_state:
+    st.session_state["field_name"] = "Home Field"
+
 with st.sidebar:
     st.markdown(
-        '<h2 style="font-family:\'DM Serif Display\',serif; color:#166534; margin-bottom:2px;">🌾 HayWatch</h2>'
+        '<h2 style="color:#166534; font-weight:800; margin-bottom:2px;">🌾 HayWatch</h2>'
         '<p style="color:#6c757d; font-size:0.82rem; margin-top:0;">Agricultural Intelligence Platform</p>',
         unsafe_allow_html=True
     )
     st.divider()
 
-    st.markdown("**Field Settings**")
-    field_name = st.text_input("Field Name", value="Home Field")
+    st.markdown("**Field Name**")
+    field_name = st.text_input("", value=st.session_state["field_name"],
+                                placeholder="e.g. North Meadow", label_visibility="collapsed")
+    st.session_state["field_name"] = field_name
+
+    st.markdown("**Search by Address or Farm Name**")
+    addr_query = st.text_input("", placeholder="e.g. 123 Farm Rd, Catonsville MD",
+                                label_visibility="collapsed", key="addr_input")
+    if st.button("🔍 Find Location", use_container_width=True):
+        if addr_query.strip():
+            try:
+                r = requests.get(
+                    "https://nominatim.openstreetmap.org/search",
+                    params={"q": addr_query, "format": "json", "limit": 1},
+                    headers={"User-Agent": "HayWatch/1.0"},
+                    timeout=8,
+                )
+                if r.ok and r.json():
+                    hit = r.json()[0]
+                    st.session_state["lat"] = round(float(hit["lat"]), 5)
+                    st.session_state["lon"] = round(float(hit["lon"]), 5)
+                    st.session_state["place_label"] = hit.get("display_name", addr_query)
+                    st.success(f"📍 {hit.get('display_name', '')[:60]}...")
+                else:
+                    st.warning("Location not found — try a more specific address.")
+            except Exception:
+                st.warning("Search unavailable — enter coordinates manually below.")
+
+    st.markdown("**Or enter coordinates directly**")
     col_lat, col_lon = st.columns(2)
     with col_lat:
-        lat = st.number_input("Latitude", value=38.72, format="%.4f", step=0.001)
+        lat_in = st.number_input("Lat", value=st.session_state["lat"],
+                                  format="%.5f", step=0.001, label_visibility="visible")
     with col_lon:
-        lon = st.number_input("Longitude", value=-77.80, format="%.4f", step=0.001)
+        lon_in = st.number_input("Lon", value=st.session_state["lon"],
+                                  format="%.5f", step=0.001, label_visibility="visible")
+    if lat_in != st.session_state["lat"] or lon_in != st.session_state["lon"]:
+        st.session_state["lat"] = lat_in
+        st.session_state["lon"] = lon_in
 
-    buffer_acres = st.slider("Field Radius (acres)", min_value=5, max_value=500, value=50, step=5)
+    st.markdown("**Field Buffer**")
+    buffer_acres = st.slider("Radius (acres)", min_value=5, max_value=500, value=50, step=5)
 
     st.divider()
-    st.markdown("**Date Range**")
-    date_start = st.date_input("NDVI Start", value=date.today() - timedelta(days=30))
-    date_end   = st.date_input("NDVI End",   value=date.today())
+    st.markdown("**Analysis Window**")
+    date_start = st.date_input("From", value=date.today() - timedelta(days=30))
+    date_end   = st.date_input("To",   value=date.today())
 
     st.divider()
-    refresh = st.button("🔄 Refresh Data", use_container_width=True)
+    refresh = st.button("🔄 Refresh Data", use_container_width=True, type="primary")
 
     st.markdown("""
-    <div style='font-size:0.72rem; color:#6c757d; margin-top:12px; line-height:1.5;'>
-    Data: Open-Meteo (weather, soil, NDVI model)<br>
-    All free · No API keys required.<br>
-    Scores update every hour.
+    <div style='font-size:0.72rem; color:#94a3b8; margin-top:12px; line-height:1.6;'>
+    📡 Open-Meteo · Nominatim · No API keys needed
     </div>
     """, unsafe_allow_html=True)
 
 if refresh:
     st.cache_data.clear()
+
+lat = st.session_state["lat"]
+lon = st.session_state["lon"]
 
 
 # ─── Data loading ─────────────────────────────────────────────────────────────
@@ -385,12 +427,11 @@ else:
 
 
 # ─── Main tabs ────────────────────────────────────────────────────────────────
-tab1, tab2, tab3, tab4, tab5 = st.tabs([
+tab1, tab2, tab3, tab4 = st.tabs([
     "📊 Dashboard",
     "🛰️ NDVI Monitor",
     "💧 Soil Moisture",
     "🌤️ Forecast",
-    "📋 Field Schedule",
 ])
 
 
@@ -398,6 +439,48 @@ tab1, tab2, tab3, tab4, tab5 = st.tabs([
 # TAB 1 — DASHBOARD
 # ══════════════════════════════════════════════════════════════════════════════
 with tab1:
+    # ── Compact field selector at top of dashboard ────────────────────────────
+    with st.expander("🗺️ Change Field Location — click map to move AOI", expanded=False):
+        try:
+            import folium
+            from streamlit_folium import st_folium as _sf
+
+            _m = folium.Map(location=[lat, lon], zoom_start=13, tiles=None)
+            folium.TileLayer(
+                tiles="https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",
+                attr="Esri", name="Satellite",
+            ).add_to(_m)
+            folium.TileLayer(tiles="OpenStreetMap", name="Streets").add_to(_m)
+            folium.LayerControl().add_to(_m)
+            folium.Marker(
+                [lat, lon],
+                icon=folium.Icon(color="green", icon="leaf", prefix="fa"),
+                tooltip=f"{field_name} — click map to relocate",
+            ).add_to(_m)
+            folium.Circle(
+                location=[lat, lon],
+                radius=int(np.sqrt(buffer_acres * 4046.86 / np.pi)),
+                color="#166534", weight=2, fill=True,
+                fill_color="#166534", fill_opacity=0.20,
+            ).add_to(_m)
+
+            _result = _sf(_m, width=None, height=300,
+                          returned_objects=["last_clicked"],
+                          key="dashboard_map")
+
+            if _result and _result.get("last_clicked"):
+                _c = _result["last_clicked"]
+                _nlat = round(_c["lat"], 5)
+                _nlon = round(_c["lng"], 5)
+                if _nlat != st.session_state["lat"] or _nlon != st.session_state["lon"]:
+                    st.session_state["lat"] = _nlat
+                    st.session_state["lon"] = _nlon
+                    st.rerun()
+
+            st.caption(f"📍 Current: {lat:.5f}, {lon:.5f} — use sidebar search or NDVI Monitor tab for full controls")
+        except ImportError:
+            st.info("Install streamlit-folium for the interactive map.")
+
     st.markdown("### Current Conditions")
 
     # KPI row
@@ -595,47 +678,107 @@ with tab2:
             st.info("No NDVI data available for the selected period.")
 
     with col_right:
-        st.markdown("### NDVI Field Map")
+        st.markdown("### 📍 Select Your Field")
+        st.caption("Click anywhere on the map to move the analysis point. "
+                   "Use satellite view to navigate to your property.")
         try:
             import folium
             from streamlit_folium import st_folium
 
             ndvi_color_hex = ndvi_to_color(ndvi_latest)
-            m = folium.Map(location=[lat, lon], zoom_start=14,
-                           tiles="Esri.WorldImagery")
+            radius_m = int(np.sqrt(buffer_acres * 4046.86 / np.pi))
+
+            field_map = folium.Map(
+                location=[lat, lon],
+                zoom_start=14,
+                tiles=None,
+            )
+
+            # Satellite layer
+            folium.TileLayer(
+                tiles="https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",
+                attr="Esri",
+                name="Satellite",
+                overlay=False,
+                control=True,
+            ).add_to(field_map)
+
+            # Streets layer toggle
+            folium.TileLayer(
+                tiles="OpenStreetMap",
+                name="Street Map",
+                overlay=False,
+                control=True,
+            ).add_to(field_map)
+
+            folium.LayerControl().add_to(field_map)
+
+            # Field circle overlay
             folium.Circle(
                 location=[lat, lon],
-                radius=int(np.sqrt(buffer_acres * 4046.86 / np.pi)),
-                color=ndvi_color_hex,
+                radius=radius_m,
+                color="#166534",
+                weight=2,
                 fill=True,
                 fill_color=ndvi_color_hex,
-                fill_opacity=0.35,
+                fill_opacity=0.30,
                 popup=folium.Popup(
-                    f"<b>{field_name}</b><br>NDVI: {ndvi_latest:.3f}<br>"
-                    f"Status: {ndvi_status_label(ndvi_latest)}",
-                    max_width=200
+                    f"<b>{field_name}</b><br>"
+                    f"NDVI: {ndvi_latest:.3f}<br>"
+                    f"Status: {ndvi_status_label(ndvi_latest)}<br>"
+                    f"Radius: {radius_m} m ({buffer_acres} ac equiv.)",
+                    max_width=220,
                 ),
-                tooltip=f"NDVI: {ndvi_latest:.3f}",
-            ).add_to(m)
+                tooltip="📍 Current AOI — click map to move",
+            ).add_to(field_map)
+
+            # Center marker
             folium.Marker(
                 [lat, lon],
-                popup=f"{field_name}",
+                popup=folium.Popup(f"<b>{field_name}</b><br>{lat:.5f}, {lon:.5f}", max_width=180),
                 icon=folium.Icon(color="green", icon="leaf", prefix="fa"),
-            ).add_to(m)
-            st_folium(m, width=None, height=340, returned_objects=[])
+                tooltip="Field center",
+            ).add_to(field_map)
+
+            # Render and capture clicks
+            map_result = st_folium(
+                field_map,
+                width=None,
+                height=400,
+                returned_objects=["last_clicked"],
+                key="field_selector_map",
+            )
+
+            # Update location on click
+            if map_result and map_result.get("last_clicked"):
+                clicked = map_result["last_clicked"]
+                new_lat = round(clicked["lat"], 5)
+                new_lon = round(clicked["lng"], 5)
+                if new_lat != st.session_state["lat"] or new_lon != st.session_state["lon"]:
+                    st.session_state["lat"] = new_lat
+                    st.session_state["lon"] = new_lon
+                    st.rerun()
 
         except ImportError:
-            st.warning("Install `streamlit-folium` for the field map: `pip install streamlit-folium`")
+            st.warning("Install streamlit-folium: `pip install streamlit-folium`")
 
-        # NDVI legend
+        # Status strip below map
+        st.markdown(f"""
+        <div style="background:#f8fafc; border:1px solid #e2e8f0; border-radius:6px;
+                    padding:10px 14px; margin-top:8px; font-size:0.83rem; color:#374151;">
+          <strong>Active AOI:</strong> {lat:.5f}, {lon:.5f} &nbsp;·&nbsp;
+          Buffer: {buffer_acres} acres &nbsp;·&nbsp;
+          NDVI: <strong style="color:#166534;">{ndvi_latest:.3f}</strong>
+          — {ndvi_status_label(ndvi_latest)}
+        </div>
+        """, unsafe_allow_html=True)
+
         st.markdown("""
-        <div style="font-size:0.8rem; color:#495057; margin-top:8px;">
-          <strong>NDVI Color Scale</strong><br>
-          <span style="color:#7f1d1d;">■</span> &lt;0.3 Bare/Stressed &nbsp;
-          <span style="color:#92400e;">■</span> 0.3–0.5 Early Growth &nbsp;
+        <div style="font-size:0.75rem; color:#94a3b8; margin-top:6px;">
+          <span style="color:#7f1d1d;">■</span> &lt;0.3 Bare &nbsp;
+          <span style="color:#92400e;">■</span> 0.3–0.5 Early &nbsp;
           <span style="color:#15803d;">■</span> 0.5–0.65 Growing &nbsp;
-          <span style="color:#166534;">■</span> &gt;0.65 Ready to Cut<br>
-          <em>NDVI modeled from Open-Meteo weather archive — no satellite account required.</em>
+          <span style="color:#166534;">■</span> &gt;0.65 Ready to cut
         </div>
         """, unsafe_allow_html=True)
 
@@ -829,107 +972,3 @@ with tab4:
 # ══════════════════════════════════════════════════════════════════════════════
 # TAB 5 — FIELD SCHEDULE
 # ══════════════════════════════════════════════════════════════════════════════
-with tab5:
-    st.markdown("### Field Management Schedule")
-
-    # Editable field table
-    if "field_schedule" not in st.session_state:
-        today = date.today()
-        st.session_state.field_schedule = pd.DataFrame({
-            "Field Name": [field_name, "South Meadow", "River Bottom"],
-            "Acreage": [50, 35, 80],
-            "Last Cut Date": [
-                (today - timedelta(days=32)).strftime("%Y-%m-%d"),
-                (today - timedelta(days=28)).strftime("%Y-%m-%d"),
-                (today - timedelta(days=41)).strftime("%Y-%m-%d"),
-            ],
-            "Notes": ["Primary field", "Tends to stay wet", "Fast draining"],
-        })
-
-    st.markdown("Edit your field roster below. Click **Calculate Readiness** to update recommendations.")
-    edited = st.data_editor(
-        st.session_state.field_schedule,
-        use_container_width=True,
-        num_rows="dynamic",
-        column_config={
-            "Field Name": st.column_config.TextColumn("Field Name", width="medium"),
-            "Acreage": st.column_config.NumberColumn("Acreage (acres)", min_value=1, max_value=5000),
-            "Last Cut Date": st.column_config.TextColumn("Last Cut Date (YYYY-MM-DD)"),
-            "Notes": st.column_config.TextColumn("Notes"),
-        },
-        hide_index=True,
-        key="field_editor",
-    )
-
-    if st.button("📐 Calculate Readiness", type="primary"):
-        st.session_state.field_schedule = edited
-        readiness = compute_field_readiness(ndvi_latest, surface_sm)
-
-        st.markdown("### Readiness Analysis")
-        for _, frow in edited.iterrows():
-            fname = frow["Field Name"]
-            last_cut_str = frow.get("Last Cut Date", "")
-            try:
-                last_cut = datetime.strptime(str(last_cut_str), "%Y-%m-%d").date()
-                days_since = (date.today() - last_cut).days
-            except ValueError:
-                days_since = None
-
-            days_to = readiness["days_to_cut"]
-            rec_date = (date.today() + timedelta(days=days_to)).strftime("%b %-d") if days_to is not None else "TBD"
-            status_color = "#166534" if readiness["status"] == "Ready Now" else "#92400e"
-
-            st.markdown(f"""
-            <div style="background:#ffffff; border:1px solid #dee2e6;
-                        border-left:4px solid {status_color};
-                        border-radius:6px; padding:16px 20px; margin-bottom:10px;
-                        box-shadow:0 1px 3px rgba(0,0,0,0.05);">
-              <div style="display:flex; justify-content:space-between; align-items:center;">
-                <div>
-                  <div style="font-size:1.05rem; font-weight:700; color:#212529;">
-                    🌾 {fname}
-                  </div>
-                  <div style="font-size:0.83rem; color:#6c757d; margin-top:3px;">
-                    {frow.get('Acreage', '—')} acres
-                    {f' &nbsp;·&nbsp; Last cut: {days_since} days ago' if days_since else ''}
-                  </div>
-                </div>
-                <div style="text-align:right;">
-                  <div style="font-weight:800; color:{status_color}; font-size:1rem;">
-                    {readiness['status']}
-                  </div>
-                  <div style="font-size:0.85rem; color:#374151; margin-top:2px;">
-                    Cut by: <strong style="color:#212529;">{rec_date}</strong>
-                  </div>
-                  <div style="font-size:0.78rem; color:#6c757d; margin-top:4px;">
-                    NDVI {ndvi_latest:.3f} {'✅' if readiness['ndvi_ready'] else '⚠️'} &nbsp;
-                    Soil {sm_pct}% {'✅' if readiness['moisture_ready'] else '⚠️'}
-                  </div>
-                </div>
-              </div>
-            </div>
-            """, unsafe_allow_html=True)
-
-    # Scoring methodology expander
-    with st.expander("ℹ️ How Suitability Scores Are Calculated"):
-        st.markdown(f"""
-        The **HayWatch Suitability Score** (0–100) fuses four data sources using weighted factors:
-
-        | Factor | Weight | Notes |
-        |---|---|---|
-        | Precipitation Probability | 35% | Highest risk factor — rain during curing ruins hay quality |
-        | Soil Moisture | 25% | Surface moisture > 55% damages soil structure and impedes equipment |
-        | Temperature | 15% | Ideal range {65}–{88} °F for rapid field curing |
-        | Wind Speed | 15% | Moderate winds ({8}–{20} mph) accelerate drying |
-        | NDVI (Crop Maturity) | 10% | Threshold ≥ {NDVI_CUT_THRESHOLD} indicates peak nutritional value |
-
-        **Cut recommendations:**
-        - **≥ 80** — Prime window, cut immediately
-        - **65–80** — Good conditions, proceed
-        - **45–65** — Marginal, monitor closely
-        - **< 45** — Poor conditions, postpone
-
-        **NDVI** is modeled from Open-Meteo historical weather using a biophysical Beer-Lambert LAI model
-        (Monteith 1977) — the same approach used in precision agriculture research.
-        Soil moisture and weather data from Open-Meteo (free, no API key required).
-        """)
