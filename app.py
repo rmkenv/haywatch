@@ -311,46 +311,22 @@ with st.sidebar:
 
     st.markdown("**Field Name**")
     field_name = st.text_input("", value=st.session_state["field_name"],
-                                placeholder="e.g. North Meadow", label_visibility="collapsed")
+                                placeholder="e.g. North Meadow",
+                                label_visibility="collapsed")
     st.session_state["field_name"] = field_name
 
-    st.markdown("**Search by Address or Farm Name**")
-    addr_query = st.text_input("", placeholder="e.g. 123 Farm Rd, Catonsville MD",
-                                label_visibility="collapsed", key="addr_input")
-    if st.button("🔍 Find Location", use_container_width=True):
-        if addr_query.strip():
-            try:
-                r = requests.get(
-                    "https://nominatim.openstreetmap.org/search",
-                    params={"q": addr_query, "format": "json", "limit": 1},
-                    headers={"User-Agent": "HayWatch/1.0"},
-                    timeout=8,
-                )
-                if r.ok and r.json():
-                    hit = r.json()[0]
-                    st.session_state["lat"] = round(float(hit["lat"]), 5)
-                    st.session_state["lon"] = round(float(hit["lon"]), 5)
-                    st.session_state["place_label"] = hit.get("display_name", addr_query)
-                    st.success(f"📍 {hit.get('display_name', '')[:60]}...")
-                else:
-                    st.warning("Location not found — try a more specific address.")
-            except Exception:
-                st.warning("Search unavailable — enter coordinates manually below.")
+    st.divider()
+    st.markdown("**Active Location**")
+    st.markdown(f"""
+    <div style="background:#f0fdf4; border:1px solid #bbf7d0; border-radius:6px;
+                padding:10px 12px; font-size:0.83rem; color:#166534; font-weight:600;">
+      📍 {st.session_state['lat']:.5f}, {st.session_state['lon']:.5f}
+    </div>
+    """, unsafe_allow_html=True)
+    st.caption("Drop a pin on the map to update.")
 
-    st.markdown("**Or enter coordinates directly**")
-    col_lat, col_lon = st.columns(2)
-    with col_lat:
-        lat_in = st.number_input("Lat", value=st.session_state["lat"],
-                                  format="%.5f", step=0.001, label_visibility="visible")
-    with col_lon:
-        lon_in = st.number_input("Lon", value=st.session_state["lon"],
-                                  format="%.5f", step=0.001, label_visibility="visible")
-    if lat_in != st.session_state["lat"] or lon_in != st.session_state["lon"]:
-        st.session_state["lat"] = lat_in
-        st.session_state["lon"] = lon_in
-
-    st.markdown("**Field Buffer**")
-    buffer_acres = st.slider("Radius (acres)", min_value=5, max_value=500, value=50, step=5)
+    st.divider()
+    buffer_acres = st.slider("Field Buffer (acres)", min_value=5, max_value=500, value=50, step=5)
 
     st.divider()
     st.markdown("**Analysis Window**")
@@ -362,7 +338,7 @@ with st.sidebar:
 
     st.markdown("""
     <div style='font-size:0.72rem; color:#94a3b8; margin-top:12px; line-height:1.6;'>
-    📡 Open-Meteo · Nominatim · No API keys needed
+    📡 Open-Meteo · No API keys needed
     </div>
     """, unsafe_allow_html=True)
 
@@ -370,6 +346,7 @@ if refresh:
     st.cache_data.clear()
 
 lat = st.session_state["lat"]
+lon = st.session_state["lon"]
 lon = st.session_state["lon"]
 
 
@@ -382,6 +359,78 @@ def load_all_data(lat, lon, days_back):
     return weather, soil_raw, ndvi_df
 
 days_back = max(7, (date_end - date_start).days)
+
+def make_field_map(lat, lon, buffer_acres, ndvi_latest, field_name, height=420, map_key="map"):
+    """
+    Render an interactive Folium map with a draggable marker.
+    Returns (new_lat, new_lon) if the user moved the pin, else None.
+    """
+    import folium
+    from streamlit_folium import st_folium
+
+    radius_m = int(np.sqrt(buffer_acres * 4046.86 / np.pi))
+    ndvi_color_hex = ndvi_to_color(ndvi_latest)
+
+    m = folium.Map(location=[lat, lon], zoom_start=14, tiles=None)
+
+    # Satellite base layer
+    folium.TileLayer(
+        tiles="https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",
+        attr="Esri World Imagery",
+        name="Satellite",
+    ).add_to(m)
+    folium.TileLayer("OpenStreetMap", name="Street Map").add_to(m)
+    folium.LayerControl(position="topright").add_to(m)
+
+    # AOI buffer circle
+    folium.Circle(
+        location=[lat, lon],
+        radius=radius_m,
+        color="#166534",
+        weight=2,
+        fill=True,
+        fill_color=ndvi_color_hex,
+        fill_opacity=0.25,
+        tooltip=f"Field AOI — {buffer_acres} ac buffer",
+    ).add_to(m)
+
+    # Draggable pin
+    folium.Marker(
+        location=[lat, lon],
+        draggable=True,
+        popup=folium.Popup(
+            f"<b>{field_name}</b><br>"
+            f"{lat:.5f}, {lon:.5f}<br>"
+            f"NDVI: {ndvi_latest:.3f} — {ndvi_status_label(ndvi_latest)}",
+            max_width=200,
+        ),
+        icon=folium.Icon(color="green", icon="map-pin", prefix="fa"),
+        tooltip="Drag me to your field",
+    ).add_to(m)
+
+    result = st_folium(m, width=None, height=height,
+                       returned_objects=["last_active_drawing", "last_clicked", "center"],
+                       key=map_key)
+
+    # Capture drag-end or click
+    new_coords = None
+    if result:
+        # last_active_drawing captures marker drag
+        drawing = result.get("last_active_drawing")
+        if drawing:
+            geom = drawing.get("geometry", {})
+            if geom.get("type") == "Point":
+                coords = geom.get("coordinates", [])
+                if len(coords) == 2:
+                    new_coords = (round(coords[1], 5), round(coords[0], 5))
+
+        # Fallback: plain map click
+        if not new_coords and result.get("last_clicked"):
+            c = result["last_clicked"]
+            new_coords = (round(c["lat"], 5), round(c["lng"], 5))
+
+    return new_coords
+
 
 with st.spinner("Loading field data..."):
     weather_data, soil_raw, ndvi_df = load_all_data(lat, lon, days_back)
@@ -440,48 +489,23 @@ tab1, tab2, tab3, tab4 = st.tabs([
 # ══════════════════════════════════════════════════════════════════════════════
 with tab1:
     # ── Compact field selector at top of dashboard ────────────────────────────
-    with st.expander("🗺️ Change Field Location — click map to move AOI", expanded=False):
+    # ── Field picker map ─────────────────────────────────────────────────────
+    with st.expander("🗺️ Set Field Location — pan & drop pin", expanded=True):
         try:
-            import folium
-            from streamlit_folium import st_folium as _sf
-
-            _m = folium.Map(location=[lat, lon], zoom_start=13, tiles=None)
-            folium.TileLayer(
-                tiles="https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",
-                attr="Esri", name="Satellite",
-            ).add_to(_m)
-            folium.TileLayer(tiles="OpenStreetMap", name="Streets").add_to(_m)
-            folium.LayerControl().add_to(_m)
-            folium.Marker(
-                [lat, lon],
-                icon=folium.Icon(color="green", icon="leaf", prefix="fa"),
-                tooltip=f"{field_name} — click map to relocate",
-            ).add_to(_m)
-            folium.Circle(
-                location=[lat, lon],
-                radius=int(np.sqrt(buffer_acres * 4046.86 / np.pi)),
-                color="#166534", weight=2, fill=True,
-                fill_color="#166534", fill_opacity=0.20,
-            ).add_to(_m)
-
-            _result = _sf(_m, width=None, height=300,
-                          returned_objects=["last_clicked"],
-                          key="dashboard_map")
-
-            if _result and _result.get("last_clicked"):
-                _c = _result["last_clicked"]
-                _nlat = round(_c["lat"], 5)
-                _nlon = round(_c["lng"], 5)
-                if _nlat != st.session_state["lat"] or _nlon != st.session_state["lon"]:
-                    st.session_state["lat"] = _nlat
-                    st.session_state["lon"] = _nlon
-                    st.rerun()
-
-            st.caption(f"📍 Current: {lat:.5f}, {lon:.5f} — use sidebar search or NDVI Monitor tab for full controls")
+            coords = make_field_map(lat, lon, buffer_acres, ndvi_latest,
+                                    field_name, height=380, map_key="dash_map")
+            if coords and (coords[0] != lat or coords[1] != lon):
+                st.session_state["lat"] = coords[0]
+                st.session_state["lon"] = coords[1]
+                st.rerun()
+            st.caption(
+                f"📍 **{lat:.5f}, {lon:.5f}** — drag the green pin or click to relocate. "
+                f"Switch to Street Map layer to find roads."
+            )
         except ImportError:
-            st.info("Install streamlit-folium for the interactive map.")
+            st.warning("streamlit-folium not installed.")
 
-    st.markdown("### Current Conditions")
+        st.markdown("### Current Conditions")
 
     # KPI row
     c1, c2, c3, c4, c5 = st.columns(5)
@@ -679,106 +703,32 @@ with tab2:
 
     with col_right:
         st.markdown("### 📍 Select Your Field")
-        st.caption("Click anywhere on the map to move the analysis point. "
-                   "Use satellite view to navigate to your property.")
+        st.caption("Pan to your farm, then **drag the green pin** or click to place it. "
+                   "Toggle satellite/street in the top-right corner.")
         try:
-            import folium
-            from streamlit_folium import st_folium
-
-            ndvi_color_hex = ndvi_to_color(ndvi_latest)
-            radius_m = int(np.sqrt(buffer_acres * 4046.86 / np.pi))
-
-            field_map = folium.Map(
-                location=[lat, lon],
-                zoom_start=14,
-                tiles=None,
-            )
-
-            # Satellite layer
-            folium.TileLayer(
-                tiles="https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",
-                attr="Esri",
-                name="Satellite",
-                overlay=False,
-                control=True,
-            ).add_to(field_map)
-
-            # Streets layer toggle
-            folium.TileLayer(
-                tiles="OpenStreetMap",
-                name="Street Map",
-                overlay=False,
-                control=True,
-            ).add_to(field_map)
-
-            folium.LayerControl().add_to(field_map)
-
-            # Field circle overlay
-            folium.Circle(
-                location=[lat, lon],
-                radius=radius_m,
-                color="#166534",
-                weight=2,
-                fill=True,
-                fill_color=ndvi_color_hex,
-                fill_opacity=0.30,
-                popup=folium.Popup(
-                    f"<b>{field_name}</b><br>"
-                    f"NDVI: {ndvi_latest:.3f}<br>"
-                    f"Status: {ndvi_status_label(ndvi_latest)}<br>"
-                    f"Radius: {radius_m} m ({buffer_acres} ac equiv.)",
-                    max_width=220,
-                ),
-                tooltip="📍 Current AOI — click map to move",
-            ).add_to(field_map)
-
-            # Center marker
-            folium.Marker(
-                [lat, lon],
-                popup=folium.Popup(f"<b>{field_name}</b><br>{lat:.5f}, {lon:.5f}", max_width=180),
-                icon=folium.Icon(color="green", icon="leaf", prefix="fa"),
-                tooltip="Field center",
-            ).add_to(field_map)
-
-            # Render and capture clicks
-            map_result = st_folium(
-                field_map,
-                width=None,
-                height=400,
-                returned_objects=["last_clicked"],
-                key="field_selector_map",
-            )
-
-            # Update location on click
-            if map_result and map_result.get("last_clicked"):
-                clicked = map_result["last_clicked"]
-                new_lat = round(clicked["lat"], 5)
-                new_lon = round(clicked["lng"], 5)
-                if new_lat != st.session_state["lat"] or new_lon != st.session_state["lon"]:
-                    st.session_state["lat"] = new_lat
-                    st.session_state["lon"] = new_lon
-                    st.rerun()
-
+            coords = make_field_map(lat, lon, buffer_acres, ndvi_latest,
+                                    field_name, height=400, map_key="ndvi_map")
+            if coords and (coords[0] != lat or coords[1] != lon):
+                st.session_state["lat"] = coords[0]
+                st.session_state["lon"] = coords[1]
+                st.rerun()
         except ImportError:
             st.warning("Install streamlit-folium: `pip install streamlit-folium`")
 
-        # Status strip below map
         st.markdown(f"""
         <div style="background:#f8fafc; border:1px solid #e2e8f0; border-radius:6px;
-                    padding:10px 14px; margin-top:8px; font-size:0.83rem; color:#374151;">
-          <strong>Active AOI:</strong> {lat:.5f}, {lon:.5f} &nbsp;·&nbsp;
-          Buffer: {buffer_acres} acres &nbsp;·&nbsp;
-          NDVI: <strong style="color:#166534;">{ndvi_latest:.3f}</strong>
+                    padding:10px 14px; margin-top:8px; font-size:0.83rem;">
+          <strong style="color:#1e293b;">Active AOI:</strong>
+          <span style="color:#166534; font-weight:700;">{lat:.5f}, {lon:.5f}</span>
+          &nbsp;·&nbsp; {buffer_acres} ac buffer &nbsp;·&nbsp;
+          NDVI <strong style="color:#166534;">{ndvi_latest:.3f}</strong>
           — {ndvi_status_label(ndvi_latest)}
         </div>
-        """, unsafe_allow_html=True)
-
-        st.markdown("""
-        <div style="font-size:0.75rem; color:#94a3b8; margin-top:6px;">
+        <div style="font-size:0.73rem; color:#94a3b8; margin-top:6px;">
           <span style="color:#7f1d1d;">■</span> &lt;0.3 Bare &nbsp;
           <span style="color:#92400e;">■</span> 0.3–0.5 Early &nbsp;
           <span style="color:#15803d;">■</span> 0.5–0.65 Growing &nbsp;
-          <span style="color:#166534;">■</span> &gt;0.65 Ready to cut
+          <span style="color:#166534;">■</span> &gt;0.65 Ready
         </div>
         """, unsafe_allow_html=True)
 
